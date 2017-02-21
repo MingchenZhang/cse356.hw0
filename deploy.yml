@@ -1,0 +1,67 @@
+---
+- hosts: hw1
+  vars:
+    http_port: 80
+    systemd_config: |
+        [Unit]
+        Description=simple nodejs server
+
+        [Service]
+        User=root
+        Group=root
+        WorkingDirectory=/var/node/cse356.hw0/
+        Environment=HTTP_PORT=80
+        ExecStart=/usr/bin/node app.js
+
+        [Install]
+        WantedBy=multi-user.target
+  remote_user: root
+  
+  gather_facts: no
+  pre_tasks:
+  - name: install python2
+    raw: sudo apt-get -y install python-simplejson
+
+  tasks:
+  - name: ensure git is installed
+    apt:
+      name: git
+      update_cache: yes
+  - name: ensure systemd is installed
+    apt:
+      name: systemd
+  - name: download nodejs apt repository install script
+    get_url:
+      url: http://deb.nodesource.com/setup_6.x
+      dest: /root/nodejs_setup.sh
+      mode: 0744
+  - name: run nodejs apt repository install script
+    command: sh /root/nodejs_setup.sh
+  - name: install nodejs
+    apt:
+      name: nodejs
+      update_cache: yes
+  - name: create folder for website resources
+    file: 
+      path: /var/node
+      state: directory
+  - name: get website resources
+    git:
+      repo: https://github.com/MingchenZhang/cse356.hw0.git
+      dest: /var/node/cse356.hw0/
+  - name: write systemd config to auto run
+    copy:
+      content: "{{ systemd_config }}"
+      dest: /etc/systemd/system/simple_nodejs_server.service
+  - name: enable the service
+    command: systemctl enable simple_nodejs_server.service
+  - name: start the service
+    command: systemctl start simple_nodejs_server.service
+  - name: pause 5 seconds
+    pause:
+      seconds: 5
+  - name: get nodejs status
+    command: systemctl status simple_nodejs_server.service -n30
+    register: node_status
+  - debug: msg="{{ node_status.stdout }}"
+  - debug: msg="{{ node_status.stderr }}"

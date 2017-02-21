@@ -12,5 +12,9 @@ exports.getRoute = function (s) {
         res.render('home-page');
     });
 
+    router.get('/hw0.html', function (req, res, next) {
+        res.render('home-page');
+    });
+
     return router;
 };
